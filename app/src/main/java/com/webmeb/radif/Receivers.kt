@@ -9,17 +9,23 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         val id = i.getIntExtra("id", 0)
         val attempt = i.getIntExtra("attempt", 0)
-        val item = Model.byId(id) ?: return
+        val t = Store.get(c, id) ?: return
 
-        // آلارم فردا رو همون لحظه بذار
-        if (attempt == 0) Scheduler.schedule(c, id, Scheduler.nextBase(c, item), 0)
+        // آلارم بعدی این تسک رو همون لحظه بذار
+        if (attempt == 0 && t.rep != 0) {
+            val next = Scheduler.nextTrigger(t, System.currentTimeMillis() + 60_000L)
+            if (next != null) Scheduler.schedule(c, id, next, 0)
+        }
 
-        // اگه امروز جواب داده، دیگه مزاحم نشو
-        if (Prefs.status(c, id).isNotEmpty()) return
+        // امروز جواب داده یا امروز موعدش نیست
+        if (Store.status(c, t).isNotEmpty()) return
+        if (!Store.isDueToday(t)) return
+        // وسط تایمر تمرکز همین تسک مزاحم نشو
+        if (Store.focusTask(c) == id) return
 
-        Notifier.show(c, item, attempt)
+        Notifier.show(c, t, attempt)
 
-        if (attempt < Model.MAX_NAGS) {
+        if (attempt < t.maxNags) {
             Scheduler.schedule(
                 c, id,
                 System.currentTimeMillis() + Model.NAG_MIN * 60_000L,
@@ -32,24 +38,27 @@ class AlarmReceiver : BroadcastReceiver() {
 class ActionReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
         val id = i.getIntExtra("id", 0)
-        if (Model.byId(id) == null) return
+        val t = Store.get(c, id) ?: return
         when (i.action) {
             Notifier.ACTION_DONE -> {
-                Prefs.setStatus(c, id, "done")
+                Store.setDone(c, t, true)
                 Toast.makeText(c, "ثبت شد. آفرین.", Toast.LENGTH_SHORT).show()
             }
             Notifier.ACTION_SKIP -> {
-                Prefs.setStatus(c, id, "skip")
-                Toast.makeText(c, "ثبت شد. فردا دوباره.", Toast.LENGTH_SHORT).show()
+                Store.skip(c, t)
+                Toast.makeText(c, "ثبت شد. دوباره سراغش می‌ریم.", Toast.LENGTH_SHORT).show()
             }
-            else -> return
+            Notifier.ACTION_FOCUS_START -> Focus.start(c, t)
+            Notifier.ACTION_FOCUS_CANCEL -> Focus.cancel(c, t)
+            Notifier.ACTION_FOCUS_END -> Focus.end(c, t)
+            Notifier.ACTION_BREAK_START -> Focus.breakStart(c, t)
+            Notifier.ACTION_BREAK_END -> Focus.breakEnd(c, t)
         }
-        Scheduler.stopNags(c, id)
     }
 }
 
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(c: Context, i: Intent) {
-        Scheduler.scheduleAll(c)
+        Scheduler.rescheduleAll(c)
     }
 }
