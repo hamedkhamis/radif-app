@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.graphics.drawable.Icon
+import android.os.Bundle
 
 object Notifier {
     private const val CH_PUSH = "radif_push"
@@ -19,6 +20,12 @@ object Notifier {
     const val ACTION_FOCUS_END = "com.webmeb.radif.FOCUS_END"
     const val ACTION_BREAK_START = "com.webmeb.radif.BREAK_START"
     const val ACTION_BREAK_END = "com.webmeb.radif.BREAK_END"
+
+    private fun countDown(): Bundle {
+        val b = Bundle()
+        b.putBoolean("android.chronometerCountDown", true)
+        return b
+    }
 
     fun focusNotifId(id: Int) = 1_000_000 + id
     fun breakNotifId(id: Int) = 2_000_000 + id
@@ -110,7 +117,7 @@ object Notifier {
             .setContentIntent(openPI(c, t.id))
             .setOngoing(true)
             .setUsesChronometer(true)
-            .setChronometerCountsDown(true)
+            .addExtras(countDown())
             .setWhen(endAt)
             .setShowWhen(true)
             .addAction(act(c, "تموم شد", actionPI(c, t.id, ACTION_DONE, 1)))
@@ -140,7 +147,7 @@ object Notifier {
             .setContentIntent(openPI(c, t.id))
             .setOngoing(true)
             .setUsesChronometer(true)
-            .setChronometerCountsDown(true)
+            .addExtras(countDown())
             .setWhen(endAt)
             .setShowWhen(true)
             .addAction(act(c, "شروع دوباره", actionPI(c, t.id, ACTION_FOCUS_START, 3)))

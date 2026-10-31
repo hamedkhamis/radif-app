@@ -176,8 +176,8 @@ class MainActivity : Activity() {
 
     private fun persianDate(): String {
         return try {
-            val f = android.icu.text.SimpleDateFormat("EEEE d MMMM", Locale("fa", "IR"))
-            f.calendar = android.icu.util.PersianCalendar()
+            val loc = android.icu.util.ULocale("fa_IR@calendar=persian")
+            val f = android.icu.text.SimpleDateFormat("EEEE d MMMM", loc)
             f.format(Date())
         } catch (e: Exception) {
             ""
